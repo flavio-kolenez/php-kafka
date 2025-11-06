@@ -1,0 +1,27 @@
+# PHP
+/vendor/
+composer.lock
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Environment
+.env
+.env.local
+
+# Python (caso ainda existam arquivos Python)
+__pycache__/
+*.pyc
+*.pyo
+env/
