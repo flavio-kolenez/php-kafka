@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pedidos Kafka Demo</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts - Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #434343 0%, #000000 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .form-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.2);
+      padding: 2.5rem;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .form-title {
+      font-weight: 400;
+      color: #444;
+      margin-bottom: 1.8rem;
+      text-align: center;
+      font-size: 1.4rem;
+    }
+
+    .form-label {
+      font-weight: 400;
+      color: #666;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    .form-control, .form-select {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      font-weight: 300;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: #6f717a;
+      box-shadow: 0 0 0 0.15rem rgba(102, 126, 234, 0.15);
+    }
+
+    .btn-submit {
+      background: #47484e;
+      border: none;
+      border-radius: 8px;
+      padding: 0.7rem 1.5rem;
+      font-weight: 400;
+      font-size: 0.9rem;
+      transition: all 0.6s ease;
+      width: 100%;
+      margin-top: 1rem;
+      color: white;
+    }
+
+    .btn-submit:hover {
+      background: rgb(102, 107, 129);
+      transform: translateY(-5px);
+    }
+
+    .alert {
+      border: none;
+      border-radius: 8px;
+      margin-top: 1.2rem;
+      font-size: 0.85rem;
+      padding: 0.8rem 1rem;
+    }
+
+    .alert strong {
+      font-weight: 400;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="form-container">
+    <h1 class="form-title">Criar Pedido</h1>
+    
+    <form id="order_form">
+      <div class="mb-3">
+        <label for="client" class="form-label">Cliente</label>
+        <input type="text" class="form-control" id="client" placeholder="Digite o nome do cliente" required />
+      </div>
+
+      <div class="mb-3">
+        <label for="product" class="form-label">Produto</label>
+        <select class="form-select" id="product" required>
+          <option value="">Selecione um produto</option>
+          <option value="mouse">Mouse</option>
+          <option value="teclado">Teclado</option>
+          <option value="monitor">Monitor</option>
+          <option value="notebook">Notebook</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="qty" class="form-label">Quantidade</label>
+        <input type="number" class="form-control" id="qty" min="1" max="10" placeholder="Ex: 2" required />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-submit">
+        Enviar Pedido
+      </button>
+    </form>
+
+    <div id="response-message"></div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    document.getElementById("order_form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      
+      // Loading state
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+      submitBtn.disabled = true;
+
+      try {
+        const order = {
+          client: document.getElementById("client").value,
+          product: document.getElementById("product").value,
+          qty: parseInt(document.getElementById("qty").value)
+        };
+
+        const res = await fetch("http://localhost:8080/src/api/index.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(order)
+        });
+
+        const data = await res.json();
+        
+        const responseDiv = document.getElementById("response-message");
+        
+        if (data.status === 'success') {
+          responseDiv.innerHTML = `
+            <div class="alert alert-success" role="alert">
+              <span>Sucesso!</span> ${data.message}
+              <br><small>Pedido ID: ${data.order.order_id}</small>
+            </div>
+          `;
+          // Reset form
+          document.getElementById("order_form").reset();
+        } else {
+          responseDiv.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+              <span>Erro!</span> ${data.message || data.error}
+            </div>
+          `;
+        }
+
+        // Auto hide message after 5 seconds
+        setTimeout(() => {
+          responseDiv.innerHTML = '';
+        }, 5000);
+
+      } catch (error) {
+        document.getElementById("response-message").innerHTML = `
+          <div class="alert alert-danger" role="alert">
+            <span>Erro!</span> Falha na conexão: ${error.message}
+          </div>
+        `;
+      } finally {
+        // Reset button
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
